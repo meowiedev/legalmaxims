@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Legal Maxims Flashcards</title>
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background-color: #ffffff;
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    min-height: 100vh;
+}
+#controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+button {
+    padding: 10px 16px;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 8px;
+    border: none;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    background-color: #e0f7fa;
+}
+button:active { transform: scale(0.95); }
+#flashcards-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    width: 100%;
+}
+#flashcards-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 70%;
+}
+.flashcard {
+    width: 100%;
+    max-width: 600px;
+    perspective: 1000px;
+    position: relative;
+    /* Use padding-bottom for the aspect ratio trick on desktop */
+    padding-bottom: 66.66%; /* 3:2 aspect ratio */
+}
+.card-inner {
+    position: absolute; /* Allows it to fill the padded space */
+    width: 100%;
+    height: 100%;
+    text-align: center;
+    transition: transform 0.6s;
+    transform-style: preserve-3d;
+    cursor: pointer;
+}
+.card-inner.flipped {
+    transform: rotateY(180deg);
+}
+.card-front, .card-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    border-radius: 12px;
+    box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+    padding: 20px;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: auto; /* Allows scrolling if content overflows */
+    text-align: center;
+    flex-direction: column;
+}
+.card-front {
+    font-weight: bold;
+    font-size: 24px;
+    color: #111;
+}
+.card-back {
+    background-color: #f7f7f9;
+    transform: rotateY(180deg);
+    font-size: 18px;
+    color: #222;
+}
+.maxim {
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 12px;
+}
+.example {
+    font-style: italic;
+    color: #555;
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.arrow {
+    font-size: 30px;
+    font-weight: bold;
+    cursor: pointer;
+    user-select: none;
+}
+/* Mobile View adjustments */
+@media (max-width: 600px) {
+    #flashcards-container { width: 95%; }
+    .flashcard {
+        padding-bottom: 0; /* Remove padding trick */
+        min-height: 250px;
+        height: auto;
+    }
+    .card-inner {
+        position: static;
+        min-height: inherit;
+        transform: none; /* Reset transform for mobile */
+    }
+    .card-front, .card-back {
+        position: relative;
+        padding-bottom: 0;
+        transform: none; /* Reset transform */
+    }
+    .card-front { font-size: 20px; }
+    .card-back { font-size: 16px; }
+    .arrow { font-size: 24px; }
+
+    /* New mobile-specific classes */
+    .card-front.hidden-mobile {
+        display: none;
+    }
+    .card-back.visible-mobile {
+        display: flex;
+    }
+    .card-back {
+        display: none;
+    }
+}
+</style>
+</head>
+<body>
+<div id="controls">
+    <button id="latin-speaker">🔊 Latin</button>
+    <button id="shuffle-btn">Shuffle</button>
+    <button id="english-speaker">🎧 English voice (reads Latin)</button>
+</div>
+<div id="flashcards-wrapper">
+    <div id="left-arrow" class="arrow">&#9664;</div>
+    <div id="flashcards-container"></div>
+    <div id="right-arrow" class="arrow">&#9654;</div>
+</div>
+
+<script>
+const maxims = [
+["Audi alteram partem", "Hear the other side", "The judge invoked the principle of audi alteram partem, ensuring both the plaintiff and defendant had a full opportunity to present their case."],
+["Nemo judex in causa sua", "No one should be a judge in their own cause", "Due to the conflict of interest, the judge recused himself from the case, citing the maxim nemo judex in causa sua."],
+["Ubi jus ibi remedium", "Where there is a right, there is a remedy", "The plaintiff successfully argued that since his fundamental right was violated, the court was obligated to provide a remedy, upholding the maxim ubi jus ibi remedium."],
+["Ignorantia juris non excusat", "Ignorance of law is no excuse", "The defendant's claim of being unaware of the tax law was dismissed by the court, as ignorantia juris non excusat."],
+["Ignorantia facti excusat", "Ignorance of fact is an excuse", "The court found the defendant not guilty of trespass because his mistaken belief about the property line constituted a valid defense under ignorantia facti excusat."],
+["Res judicata", "A matter already judged", "The court dismissed the new lawsuit, ruling that the matter was already decided in a previous trial and was therefore res judicata."],
+["Sub judice / Lis pendens", "Under judicial consideration / suit pending", "The lawyer was sanctioned for commenting on the ongoing case to the media, violating the rule that the matter was sub judice."],
+["Res ipsa loquitur", "The thing speaks for itself", "The court applied the doctrine of res ipsa loquitur in the medical malpractice case, inferring negligence from the fact that a surgical clamp was left inside the patient."],
+["Volenti non fit injuria", "To one who consents, no injury is done", "The injured athlete's claim for damages was denied by the court, which held that by participating in the sport, he consented to the risks under the rule of volenti non fit injuria."],
+["Damnum sine injuria", "Damage without legal injury", "The court ruled that the new highway construction, while causing economic harm to the business, was a case of damnum sine injuria as no legal right had been violated."],
+["Injuria sine damno", "Legal injury without actual damage", "The public official successfully sued for defamation, establishing an injuria sine damno even without proving specific financial loss."],
+["Actus reus", "The guilty act", "The prosecution had to prove the defendant's physical act of taking the property to satisfy the actus reus element of theft."],
+["Mens rea", "The guilty mind", "The prosecution failed to prove mens rea, as they could not demonstrate the defendant's intent to commit fraud."],
+["Actus non facit reum nisi mens sit rea", "The act does not make one guilty unless the mind is guilty", "The judge acquitted the defendant, stating that while he caused harm, there was no guilty mind, thus the principle of actus non facit reum nisi mens sit rea applied."],
+["Qui facit per alium facit per se", "He who acts through another acts himself", "The company was held liable for the employee's fraudulent statements, as the court applied the maxim qui facit per alium facit per se."],
+["Delegatus non potest delegare", "A delegate cannot further delegate", "The administrative officer's decision was invalidated by the court because he had unlawfully delegated his authority, violating the rule of delegatus non potest delegare."],
+["Caveat emptor", "Let the buyer beware", "The buyer's lawsuit for a faulty product was dismissed by the court, which held that the defect was visible, and the rule of caveat emptor applied."],
+["Caveat venditor", "Let the seller beware", "The court ruled in favor of the buyer, holding the seller liable for not disclosing known defects under the principle of caveat venditor."],
+["De minimis non curat lex", "The law does not concern itself with trifles", "The judge dismissed the lawsuit over a trivial neighborhood dispute, stating that de minimis non curat lex."],
+["Expressio unius est exclusio alterius", "Express mention of one excludes the rest", "The court interpreted the contract to mean that the explicitly listed conditions were the only ones that applied, relying on the maxim expressio unius est exclusio alterius."],
+["Ejusdem generis", "Of the same kind", "A statute that prohibited 'knives, firearms, and other weapons' was interpreted by the court to apply only to similarly dangerous items, using the ejusdem generis rule."],
+["Noscitur a sociis", "A word is known by the company it keeps", "The court determined the meaning of an ambiguous word in the contract by examining the other words surrounding it, applying the rule of noscitur a sociis."],
+["Reddendo singula singulis", "Refer each to each", "The court interpreted the will by matching each bequest to its correct beneficiary, applying the principle of reddendo singula singulis."],
+["Generalia specialibus non derogant", "General provisions do not derogate from special ones", "The specific rule for tax deductions on charitable donations was held to override a more general tax provision, based on the maxim generalia specialibus non derogant."],
+["Ut res magis valeat quam pereat", "It is better for a thing to have effect than to fail", "The court chose an interpretation of the contract that made it legally enforceable rather than void, guided by the principle of ut res magis valeat quam pereat."],
+["Contra proferentem", "Against the party who drafted", "The ambiguous clause in the insurance policy was interpreted in favor of the insured party, applying the rule of contra proferentem against the company that drafted it."],
+["Stare decisis", "Stand by precedent", "The judge felt compelled to follow the precedent set by a higher court, adhering to the principle of stare decisis."],
+["Ratio decidendi", "The reason for the decision", "The binding part of the previous judgment, the ratio decidendi, was the court's reasoning that a certain type of contract was illegal."],
+["Obiter dictum", "A remark in passing", "The judge's remarks on public policy in the judgment were considered obiter dictum and therefore not binding precedent."],
+["Locus standi", "Right to be heard", "The court dismissed the activist group's lawsuit, ruling that they lacked locus standi because they were not directly affected by the law in question."],
+["Sine qua non", "An indispensable condition", "The prosecution argued that the defendant's intent to deceive was a sine qua non for a finding of fraud."],
+["Sui generis", "Of its own kind", "The court described the new regulatory framework for cryptocurrency as sui generis because it was unique and did not fit any existing legal category."],
+["Ipso facto", "By that very fact", "The contract specified that failure to make payment by the deadline would result in its cancellation ipso facto."],
+["Inter alia", "Among other things", "The court's judgment noted that the defendant was liable for damages, inter alia, for breach of contract and negligence."],
+["Per incuriam", "Decided through lack of care", "The appellate court overturned the lower court's decision, finding that it was decided per incuriam because it failed to consider a crucial statute."],
+["In limine", "At the threshold", "The defense lawyer filed a motion in limine to prevent the prosecutor from introducing certain evidence at trial."],
+["Corpus delicti", "The essential facts of an offence", "In the absence of a body or other evidence of a crime, the prosecution could not establish the corpus delicti for a murder charge."],
+["Actus curiae neminem gravabit", "An act of the court shall prejudice no one", "The court corrected a clerical error in the judgment, stating that actus curiae neminem gravabit."],
+["Actus Dei nemini facit injuriam", "Act of God injures no one", "The defendant was not held liable for failing to deliver goods on time, as the delay was caused by a hurricane, an Actus Dei nemini facit injuriam."],
+["Non obstante", "Notwithstanding", "The court enforced the law, non obstante a previous conflicting ruling from a lower court."],
+["Prima facie", "At first sight", "The plaintiff presented a prima facie case for negligence, which was sufficient to proceed to trial, but not yet conclusive."],
+["Onus probandi", "Burden of proof", "The onus probandi in the criminal trial lay with the prosecution to prove guilt beyond a reasonable doubt."],
+["Res gestae", "Things done in the transaction", "The victim's spontaneous statement, made immediately after the assault, was admitted as evidence under the res gestae exception."],
+["Lex loci", "Law of the place", "The court ruled that the validity of the contract would be determined by the lex loci, the law of the place where it was signed."],
+["Lex fori", "Law of the forum", "The court applied its own procedural rules, in line with the principle of lex fori."],
+["Lex specialis derogat legi generali", "Special law prevails over general law", "The court applied the specific provision of the family law statute rather than the general contract law, citing the principle of lex specialis derogat legi generali."],
+["Lex posterior derogat priori", "Later law prevails over earlier law", "The more recent legislative amendment was held to supersede the older, conflicting statute, based on the rule lex posterior derogat priori."],
+["Lex non cogit ad impossibilia", "The law does not compel the impossible", "The court excused the party from performance of the contract, as a natural disaster had made it impossible, invoking the maxim lex non cogit ad impossibilia."],
+["Lex prospicit non respicit", "The law looks forward, not backward", "The court ruled that the new law could not be applied retroactively to the defendant's past actions, following the principle lex prospicit non respicit."],
+["Nulla poena sine lege", "No punishment without law", "The court could not impose a penalty for the defendant's action because no law existed against it at the time, upholding the principle of nulla poena sine lege."],
+["Nullum crimen sine lege", "No crime without law", "The judge dismissed the indictment, stating that there could be no crime without a specific law defining it, or nullum crimen sine lege."],
+["Nemo dat quod non habet", "No one can give what he does not have", "The court ruled that the buyer did not acquire valid title to the stolen goods, as the seller had no right to transfer them, based on the maxim nemo dat quod non habet."],
+["Nemo debet esse judex in propria causa", "No one ought to be judge in their own cause", "The judge's decision was appealed on the grounds that he should have disqualified himself due to a personal interest, violating the maxim nemo debet esse judex in propria causa."],
+["Nemo tenetur seipsum accusare", "No one is bound to incriminate himself", "The defendant invoked his Fifth Amendment right against self-incrimination, which is based on the principle of nemo tenetur seipsum accusare."],
+["Nemo moriturus praesumitur mentire", "A dying person is not presumed to lie", "The court admitted the dying declaration as truthful evidence, relying on the maxim nemo moriturus praesumitur mentire."],
+["Falsus in uno, falsus in omnibus", "False in one thing, false in all", "The jury was instructed to disregard the witness's entire testimony after it was proven she lied about one key fact, applying the rule of falsus in uno, falsus in omnibus."],
+["He who seeks equity must do equity", "Equitable relief requires fairness by claimant", "The plaintiff's request for an equitable remedy was denied because he had himself acted unfairly in the transaction, based on the maxim he who seeks equity must do equity."],
+["He who comes into equity must come with clean hands", "No relief if claimant acts unfairly", "The court refused to grant the plaintiff an injunction, as he had engaged in fraudulent conduct himself, holding that he did not 'come with clean hands'."],
+["Equity follows the law", "Equity respects legal rules", "The court applied a common law rule to the equitable claim, demonstrating that equity follows the law."],
+["Equity looks to the intent rather than the form", "Substance over form", "The court examined the true purpose of the trust agreement rather than its technical wording, adhering to the principle that equity looks to the intent rather than the form."],
+["Equity regards as done that which ought to be done", "Treats obligations as fulfilled", "The court treated the property transfer as completed, even before the formal paperwork was finalized, applying the principle of equity regards as done that which ought to be done."],
+["Delay defeats equity", "Delay bars equitable relief", "The plaintiff's equitable claim was dismissed due to an unreasonable delay in bringing the action, invoking the principle that delay defeats equity."],
+["Vigilantibus non dormientibus jura subveniunt", "The law assists the vigilant, not the indolent", "The court denied the claimant's request for relief, stating that the law assists the diligent, not the negligent, upholding the maxim vigilantibus non dormientibus jura subveniunt."],
+["Ex turpi causa non oritur actio", "No action arises from an immoral cause", "The court dismissed the claim for damages arising from an illegal drug transaction, citing the rule ex turpi causa non oritur actio."],
+["Ex nudo pacto non oritur actio", "A bare promise creates no action", "The verbal promise to pay a gift was unenforceable by the court because it lacked consideration, as per the maxim ex nudo pacto non oritur actio."],
+["Pacta sunt servanda", "Agreements must be kept", "The court enforced the terms of the signed contract, affirming the fundamental legal principle that pacta sunt servanda."],
+["Consensus ad idem", "Meeting of minds", "The court found the contract to be invalid because the parties never had a true 'meeting of the minds' on the terms, lacking a consensus ad idem."],
+["In rem", "Against a thing", "A lawsuit to quiet title on a property is an action in rem, as it is directed at the property itself, not a specific person."],
+["In personam", "Against a person", "The court issued a restraining order against the defendant, an action in personam, because it binds the person, not a thing."],
+["Mutatis mutandis", "With necessary changes having been made", "The court applied the precedent from a corporate law case to the partnership dispute, making the necessary changes mutatis mutandis."],
+["Ultra vires", "Beyond powers", "The court declared the board's decision to be ultra vires and void, as it exceeded the company's legal authority as defined in its charter."],
+["Intra vires", "Within powers", "The court affirmed that the corporate action was valid because it was within the legal powers of the company, and thus was intra vires."],
+["Respondeat superior", "Let the master answer", "The employer was held liable for the employee's negligence while on the job under the doctrine of respondeat superior."],
+["Novus actus interveniens", "A new intervening act", "The court ruled that the victim's subsequent injury was caused by a new and independent act of a third party, a novus actus interveniens, which broke the chain of causation."],
+["Mala in se", "Wrongs in themselves", "The court recognized that murder is a mala in se crime, inherently wrong regardless of statutory law."],
+["Mala prohibita", "Wrongs because prohibited by statute", "Parking in a restricted zone is an example of a mala prohibita offense, as it is wrong only because the law forbids it."],
+["Locus in quo", "The place where the cause arose", "The court considered the physical evidence found at the crime scene, which was the locus in quo."],
+["Amicus curiae", "Friend of the court", "The court allowed a non-party expert organization to submit a brief as an amicus curiae to provide legal and technical context for the case."],
+["Habeas corpus", "Produce the body", "The prisoner's attorney filed a writ of habeas corpus to challenge the legality of their detention."],
+["Functus officio", "Having performed one’s office", "The judge declared that his authority over the case had ended upon issuing the final judgment, and he was therefore functus officio."],
+["Res integra", "An untouched point", "The court noted that the legal issue was a res integra—a point of law that had not been decided before."],
+["Consensus facit legem", "Consent makes the law", "The court upheld the terms of the private agreement between the parties, stating that their mutual consent had created a binding law for them, or consensus facit legem."],
+["Contemporanea expositio est optima", "Contemporaneous interpretation is best", "The court interpreted the old statute by looking at how it was applied at the time of its enactment, guided by the principle of contemporanea expositio est optima."],
+["Expressum facit cessare tacitum", "The express excludes the implied", "The explicit terms of the contract were held to exclude any implied terms, based on the maxim expressum facit cessare tacitum."],
+["Nullus commodum capere potest de injuria sua propria", "No one may benefit from his own wrong", "The court ruled that the heir who murdered his benefactor could not inherit the estate, applying the principle of nullus commodum capere potest de injuria sua propria."],
+["Actio personalis moritur cum persona", "A personal action dies with the person", "The court dismissed the defamation lawsuit after the plaintiff's death, applying the common law rule of actio personalis moritur cum persona."],
+["Cujus est solum, ejus est usque ad coelum et ad inferos", "Land ownership extends upward and downward", "The court recognized the landowner's claim to the resources below his property, referencing the traditional maxim cujus est solum, ejus est usque ad coelum et ad inferos."],
+["Forum non conveniens", "Inconvenient forum", "The court dismissed the lawsuit, concluding that it was a forum non conveniens and that the case would be more appropriately heard in another jurisdiction."],
+["Rex (or Res publica) non potest peccare", "The sovereign cannot do wrong", "The defendant's lawsuit against the state was dismissed, as the court held that the government could not be sued without its consent under the doctrine of sovereign immunity, or Rex non potest peccare."],
+["Salus populi est suprema lex", "The welfare of the people is the supreme law", "The court upheld the government's emergency measures during the pandemic, reasoning that the welfare of the people was the supreme law, or salus populi est suprema lex."],
+["Fiat justitia ruat caelum", "Let justice be done though the heavens fall", "The judge delivered a difficult and unpopular but just verdict, stating he was guided by the principle fiat justitia ruat caelum."],
+["Dura lex sed lex", "The law is harsh, but it is the law", "The judge acknowledged the harshness of the mandatory sentence but imposed it, stating dura lex sed lex."],
+["In terrorem", "By way of warning", "The court interpreted the excessive penalty clause as merely in terrorem, intended to deter but not to be literally enforced."],
+["In pari materia", "Statutes on the same subject are read together", "The court read the two environmental statutes in pari materia to resolve an apparent conflict and ensure consistent application."],
+["Bona fide", "In good faith", "The court found that the defendant's purchase of the property was a bona fide transaction, as there was no evidence of an intent to defraud creditors."],
+["Malafide", "In bad faith", "The court ruled the contract void after finding that the seller's misrepresentations were malafide, made with a clear intent to deceive."],
+["Fieri non potest", "It cannot be done", "The court found the contract clause unenforceable because it required an impossible act, citing the maxim fieri non potest."],
+["Quantum meruit", "As much as he deserved", "The court awarded the subcontractor payment on a quantum meruit basis for the work completed before the main contract was terminated."],
+["Sic utere tuo ut alienum non laedas", "Use your property so as not to injure others", "The court issued an injunction against the factory, ordering it to cease the harmful emissions that were damaging the neighboring properties, based on the principle of sic utere tuo ut alienum non laedas."],
+["Actus legitimi", "Lawful acts", "The court determined that the execution of the will and transfer of property constituted lawful acts, or actus legitimi."],
+["Actus illicitus", "Unlawful acts", "The court ruled that the defendant's deliberate destruction of the property was an actus illicitus, and thus a criminal offense."],
+["Vinculum juris", "Legal bond", "The court held that the contract created a valid vinculum juris, binding both parties to its terms."]
+];
+
+const colors = ["#e0f7fa","#f1f8e9","#fff9c4","#fce4ec","#e8eaf6","#ede7f6","#f3e5f5","#f9fbe7","#e8f5e9","#e1f5fe"];
+const container = document.getElementById('flashcards-container');
+const leftArrow = document.getElementById('left-arrow');
+const rightArrow = document.getElementById('right-arrow');
+const shuffleBtn = document.getElementById('shuffle-btn');
+const latinSpeakerBtn = document.getElementById('latin-speaker');
+const englishSpeakerBtn = document.getElementById('english-speaker');
+
+let currentIndex = 0;
+let voices = [];
+
+function loadVoices() { voices = speechSynthesis.getVoices(); }
+loadVoices();
+if (speechSynthesis.onvoiceschanged !== undefined) {
+    speechSynthesis.onvoiceschanged = loadVoices;
+}
+
+function chooseVoice(prefer) {
+    if (!voices || voices.length === 0) return null;
+    if (prefer === 'latin') {
+        let v = voices.find(v => v.lang.toLowerCase().includes('la'));
+        if (v) return v;
+        v = voices.find(v => ['it','es','fr'].some(l => v.lang.toLowerCase().startsWith(l)));
+        if (v) return v;
+    }
+    return voices.find(v => v.lang.toLowerCase().startsWith('en')) || voices[0];
+}
+
+function speakText(text, langPref) {
+    if (!window.speechSynthesis) return;
+    try { speechSynthesis.cancel(); } catch(e){}
+    const utter = new SpeechSynthesisUtterance(text);
+    const v = chooseVoice(langPref);
+    if (v) utter.voice = v;
+    utter.lang = v ? v.lang : 'en-US';
+    speechSynthesis.speak(utter);
+}
+
+// Add this helper function to check if the user is on a mobile screen
+function isMobile() {
+    return window.innerWidth <= 600;
+}
+
+function createCard(maxim) {
+    const card = document.createElement('div');
+    card.className = 'flashcard';
+    const inner = document.createElement('div');
+    inner.className = 'card-inner';
+
+    const front = document.createElement('div');
+    front.className = 'card-front';
+    front.textContent = maxim[0];
+
+    const back = document.createElement('div');
+    back.className = 'card-back';
+    back.innerHTML = `<div class="maxim">${maxim[0]} - ${maxim[1]}</div><div class="example">${maxim[2] || ''}</div>`;
+
+    inner.appendChild(front);
+    inner.appendChild(back);
+    card.appendChild(inner);
+
+    const chosen = colors[Math.floor(Math.random() * colors.length)];
+    front.style.backgroundColor = chosen;
+
+    card.addEventListener('click', () => {
+        if (isMobile()) {
+            // Mobile-specific click behavior
+            front.classList.toggle('hidden-mobile');
+            back.classList.toggle('visible-mobile');
+        } else {
+            // Desktop-specific click behavior
+            inner.classList.toggle('flipped');
+        }
+    });
+
+    return card;
+}
+
+function showCard(index) {
+    container.innerHTML = '';
+    const card = createCard(maxims[index]);
+    container.appendChild(card);
+}
+
+// Navigation
+leftArrow.addEventListener('click', () => {
+    currentIndex = (currentIndex - 1 + maxims.length) % maxims.length;
+    showCard(currentIndex);
+});
+rightArrow.addEventListener('click', () => {
+    currentIndex = (currentIndex + 1) % maxims.length;
+    showCard(currentIndex);
+});
+shuffleBtn.addEventListener('click', () => {
+    currentIndex = Math.floor(Math.random() * maxims.length);
+    showCard(currentIndex);
+});
+
+// Speaker Buttons beside shuffle
+latinSpeakerBtn.addEventListener('click', () => {
+    speakText(maxims[currentIndex][0], 'latin');
+});
+englishSpeakerBtn.addEventListener('click', () => {
+    speakText(maxims[currentIndex][0], 'english');
+});
+
+showCard(currentIndex);
+</script>
+</body>
+</html>
